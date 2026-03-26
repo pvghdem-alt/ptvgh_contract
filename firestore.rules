@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: contracts
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required, 1-200 chars)
+    //   - amount: number (required, positive)
+    //   - startDate: timestamp (required)
+    //   - endDate: timestamp (required)
+    //   - contactPerson: string (required, 1-100 chars)
+    //   - contactEmail: string (required, email format)
+    //   - ownerUid: string (required, matches auth.uid)
+    //   - notified: bool (optional, default false)
+    //   - completed: bool (optional, default false)
+    //   - campus: string (required, enum: 總院, 龍泉, 兩院區)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "pvghdem@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string &&
+        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidContract(data) {
+      return data.keys().hasAll(['name', 'amount', 'startDate', 'endDate', 'contactPerson', 'contactEmail', 'ownerUid', 'campus']) &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+        data.amount is number && data.amount >= 0 &&
+        data.startDate is timestamp &&
+        data.endDate is timestamp &&
+        data.contactPerson is string && data.contactPerson.size() > 0 && data.contactPerson.size() <= 100 &&
+        isValidEmail(data.contactEmail) &&
+        data.ownerUid == request.auth.uid &&
+        data.campus in ['總院', '龍泉', '兩院區'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /contracts/{contractId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidContract(request.resource.data);
+      allow update: if isAuthenticated() && isValidContract(request.resource.data) && (isOwner(resource.data.ownerUid) || isAdmin());
+      allow delete: if isAuthenticated() && (isOwner(resource.data.ownerUid) || isAdmin());
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow create, update: if isAdmin();
+    }
+  }
+}

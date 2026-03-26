@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "Contract": {
+      "title": "Contract",
+      "description": "A contract record with its lifecycle and contact information.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the contract."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The total amount of the contract."
+        },
+        "startDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The start date of the contract."
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The end date of the contract."
+        },
+        "contactPerson": {
+          "type": "string",
+          "description": "The person in charge of the contract."
+        },
+        "contactEmail": {
+          "type": "string",
+          "format": "email",
+          "description": "The email address of the person in charge."
+        },
+        "ownerUid": {
+          "type": "string",
+          "description": "The UID of the user who created the contract."
+        },
+        "notified": {
+          "type": "boolean",
+          "description": "Whether the notification email has been sent."
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Whether the tendering process is completed."
+        },
+        "campus": {
+          "type": "string",
+          "enum": ["總院", "龍泉", "兩院區"],
+          "description": "The campus the contract belongs to."
+        }
+      },
+      "required": ["name", "amount", "startDate", "endDate", "contactPerson", "contactEmail", "ownerUid", "campus"]
+    }
+  },
+  "firestore": {
+    "contracts/{contractId}": {
+      "schema": "Contract",
+      "description": "Collection of hospital contracts."
+    }
+  }
+}
